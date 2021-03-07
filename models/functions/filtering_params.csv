@@ -1,0 +1,14 @@
+condition,value
+TH_year,2010
+TH_patients,0.2
+TH_features,0.2
+TH_age,120
+ONLY_IS_CHEM,False
+ONLY_IS_COUNT,False
+IS_INTERNAL_ONLY,True
+IS_FEATURE_SELECTION,False
+IS_LOS_24hr,False
+IS_OVER_UNDER_SAMPLING,False
+IS_SCALE,True
+IS_FEATURE_SELECTION_diagnoses_only,False
+IS_FEATURE_SELECTION_SHAP,True
