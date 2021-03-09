@@ -68,11 +68,7 @@ path_figures="O:/research/syncope_giris/analysis/plots/"
 df=df.drop(columns=['CaseNum',  'EnterDate', 'ExitDate','LABEL_JUST_ER','enter_month','discharge_month','log_LOS'])
 
 
-
 df=filter_input(df)
-
-######################################################
-
 
 y=df["LABEL_HOSP"]
 x=df.drop(columns=['LABEL_HOSP'])
@@ -88,6 +84,9 @@ indx=[x[1] for x in gkf]
 
 roc_value_array = []
 xg_probs_all=pd.DataFrame()
+xg_probs_df_test=pd.DataFrame()
+xg_probs_df_train=pd.DataFrame()
+sensitivity_s=pd.Series()
 
 for i in range(len(indx)):  
     x_test=x.iloc[indx[i]]
@@ -141,6 +140,8 @@ for i in range(len(indx)):
     print("AUC_test: " + str(roc_value))
     print("AUC_train: " + str(roc_value_train))
 
+
+    #plot auc curves ####################
     plt.figure(figsize=(6,6))
     logit_roc_auc1 = roc_auc_score (y_test, xg_probs)
     fpr1, tpr1, thresholds1 = roc_curve (y_test, xg_probs)
@@ -151,8 +152,6 @@ for i in range(len(indx)):
     plt.plot (fpr1, tpr1, label='AUC   = %0.2f' % logit_roc_auc2)
    
     
-        
-    
     plt.plot ([0, 1], [0, 1], 'r--')
     plt.xlim ([0.0, 1.0])
     plt.ylim ([0.0, 1.05])
@@ -160,14 +159,18 @@ for i in range(len(indx)):
     plt.ylabel ('True Positive Rate')
     #plt.title ('Receiver operating characteristic')
     plt.legend (loc="lower right")
-    print("number of features used in model: "+ str(len(features)))
+    
+    ######################
+    
+    
+    #print("number of features used in model: "+ str(len(features)))
     sensitivity_recall,specificity,ppv,f1=report_metrics(y_test, y_pred)
     
-    model.get_booster().feature_names = features
+    #model.get_booster().feature_names = features
 
-    xgboost.plot_importance(model.get_booster(),max_num_features=15)
-    plt.show()
-    
+    #xgboost.plot_importance(model.get_booster(),max_num_features=15)
+    #plt.show()
+    # shap importance #######################
     X_importance=pd.DataFrame(x_train,columns=features)
     explainer = shap.TreeExplainer(train_model)
     shap_values = explainer.shap_values(X_importance)
@@ -189,13 +192,15 @@ for i in range(len(indx)):
     #y_test=np.where(y_test==1,"readmission","no_readmission")
 
 
-    #plt.show()
-    ax = sns.stripplot(x=y_test, y=xg_probs,jitter=0.05)
-    #plt.title("Test (N=71)", fontdict=None, loc='center')
-    plt.ylabel ("probabilities")
-    plt.show()
-    plt.figure(figsize=(8,5))
+#    #plt.show()
+#    ax = sns.stripplot(x=y_test, y=xg_probs,jitter=0.05)
+#    #plt.title("Test (N=71)", fontdict=None, loc='center')
+#    plt.ylabel ("probabilities")
+#    plt.show()
+#    plt.figure(figsize=(8,5))
     
+    
+    #prob plot####################################
     ax = sns.boxplot(x=y_test, y=xg_probs)
     #plt.title("Test (N=71)", fontdict=None, loc='center')
     plt.ylabel ("probabilities")
@@ -203,10 +208,40 @@ for i in range(len(indx)):
 
 
     
-    xg_probs_df=pd.Series(xg_probs)
-    xg_probs_all=pd.concat([xg_probs_all, xg_probs_df]).groupby(level=0).mean()
+    xg_probs=pd.Series(xg_probs)
+    xg_probs_df_test=pd.concat([xg_probs_df_test, xg_probs],axis=1)
+    xg_probs_df_test=xg_probs_df_test.rename(columns={0: i})
+    xg_probs_test_mean=xg_probs_df_test.mean(axis=1)
+    
+    xg_probs_train=pd.Series(xg_probs_train)
+    xg_probs_df_train=pd.concat([xg_probs_df_train, xg_probs_train],axis=1)
+    xg_probs_df_test=xg_probs_df_test.rename(columns={0: i})
+    xg_probs_train_mean=xg_probs_df_train.mean(axis=1)
+
+#    sensitivity=pd.Series(sensitivity_recall)
+#    sensitivity_s=pd.concat([sensitivity_s, sensitivity],axis=0)
+#    sensitivity_mean=sensitivity_s.mean()
+#    
+    def summarize_metrics(param):
+        if i==0:
+            global param_s
+            param_s=pd.Series()
+        param=pd.Series(param)
+        param_s=pd.concat([param_s, param],axis=0)
+        param_mean=param_s.mean()
+        
+        return param_s,param_mean
+    
+        
+    
+    sensitivity_s,sensitivity_mean=summarize_metrics(sensitivity_recall)
+    
+    
+    
+    
     
     roc_value_array.append(roc_value)
+     
     
     avg_roc = np.mean(roc_value_array,axis=0)
     print("average roc test: "+str(avg_roc))
